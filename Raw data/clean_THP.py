@@ -2,28 +2,20 @@ import os
 import unicodedata
 import pandas as pd
 
-# =========================
-# 文件路径
-# =========================
 input_file = "/Users/bohe/Desktop/THP CODE2/raw data/main.csv"
 output_folder = "/Users/bohe/Desktop/THP CODE2/clean_data"
 os.makedirs(output_folder, exist_ok=True)
 
-# =========================
-# 读取数据
-# =========================
 thp_raw = pd.read_csv(input_file)
 print("Original data shape:", thp_raw.shape)
 
-# =========================
-# 1. 清洗 sequence
-# =========================
+
 standard_aa = set("ACDEFGHIKLMNPQRSTVWY")
 
 thp_clean = thp_raw.dropna(subset=["sequence"]).copy()
 thp_clean["sequence"] = thp_clean["sequence"].astype(str).str.strip().str.upper()
 
-# 只保留标准20种氨基酸
+
 thp_clean = thp_clean[
     thp_clean["sequence"].apply(
         lambda seq: len(seq) > 0 and set(seq).issubset(standard_aa)
@@ -42,9 +34,6 @@ thp_clean = thp_clean[
 # 因为一个 THP 可以对应多个 target
 
 
-# =========================
-# 2. 清洗 receptors_biomarker
-# =========================
 thp_clean["receptors_biomarker_clean"] = thp_clean["receptors_biomarker"].apply(
     lambda x: unicodedata.normalize("NFKC", str(x)).strip()
     if pd.notna(x) else pd.NA
@@ -72,14 +61,9 @@ thp_clean["receptors_biomarker_clean"] = (
 )
 
 # 删除没有 target 的记录
-thp_clean = thp_clean.dropna(
-    subset=["receptors_biomarker_clean"]
-).copy()
+thp_clean = thp_clean.dropna(  subset=["receptors_biomarker_clean"]).copy()
 
 
-# =========================
-# 3. 标准化单蛋白名称
-# =========================
 receptor_mapping = {
 
     # EGFR / HER2
@@ -279,9 +263,6 @@ thp_clean["receptors_biomarker_clean"] = (
 )
 
 
-# =========================
-# 4. 明确可以拆开的多靶点
-# =========================
 multi_target_mapping = {
 
     "EGFR, EGFRvIII": [
@@ -339,9 +320,6 @@ thp_clean["target_protein"] = (
 )
 
 
-# =========================
-# 5. 标记需要删除的数据
-# =========================
 thp_clean["filter_reason"] = pd.NA
 
 
@@ -362,9 +340,7 @@ mask = thp_clean["target_protein"].isin(non_protein)
 thp_clean.loc[mask, "filter_reason"] = "non_protein"
 
 
-# -------------------------
-# 5.2 细胞 / cell line
-# -------------------------
+
 cell_targets = {
     "LNCaP",
     "U87R",
@@ -373,17 +349,11 @@ cell_targets = {
     "-MCF 7.00"
 }
 
-mask = (
-    thp_clean["filter_reason"].isna()
-    & thp_clean["target_protein"].isin(cell_targets)
-)
+mask = (  thp_clean["filter_reason"].isna() & thp_clean["target_protein"].isin(cell_targets))
 
 thp_clean.loc[mask, "filter_reason"] = "cell_or_cell_line"
 
 
-# -------------------------
-# 5.3 integrin heterodimer
-# -------------------------
 integrin_pattern = (
     r"(?i)"
     r"\bintegrins?\b"
@@ -407,9 +377,7 @@ mask = (
 thp_clean.loc[mask, "filter_reason"] = "integrin_complex"
 
 
-# -------------------------
-# 5.4 variant / isoform
-# -------------------------
+
 variant_pattern = (
     r"(?i)"
     r"EGFRvIII"
@@ -431,9 +399,6 @@ mask = (
 thp_clean.loc[mask, "filter_reason"] = "variant_or_isoform"
 
 
-# -------------------------
-# 5.5 模糊家族 / 无法唯一确定蛋白
-# -------------------------
 vague_target = {
     "M-protein",
     "Proteoglycan",
@@ -508,9 +473,7 @@ mask = (
 thp_clean.loc[mask, "filter_reason"] = "uncertain_multi_target"
 
 
-# =========================
-# 6. 保存被删除的数据
-# =========================
+
 thp_removed = thp_clean[
     thp_clean["filter_reason"].notna()
 ].copy()
@@ -527,21 +490,12 @@ print("\nRemoved data:")
 print(thp_removed["filter_reason"].value_counts())
 
 
-# =========================
-# 7. 只保留干净 single-protein pair
-# =========================
-thp_clean = thp_clean[
-    thp_clean["filter_reason"].isna()
-].copy()
 
-thp_clean = thp_clean.drop(
-    columns=["filter_reason"]
-)
+thp_clean = thp_clean[ thp_clean["filter_reason"].isna()].copy()
+
+thp_clean = thp_clean.drop( columns=["filter_reason"])
 
 
-# =========================
-# 8. peptide-target pair 去重
-# =========================
 thp_clean = thp_clean.drop_duplicates(
     subset=[
         "sequence",
@@ -551,16 +505,11 @@ thp_clean = thp_clean.drop_duplicates(
 ).copy()
 
 
-# =========================
-# 9. label
-# =========================
+# label
+
 thp_clean["label"] = 1
 
 
-# =========================
-# 10. THP 长度统计
-# =========================
-# 同一条 THP 即使对应多个确定靶点，只统计一次
 length_count = (
     thp_clean
     .drop_duplicates(subset=["sequence"])["length"]
@@ -577,9 +526,6 @@ length_count.to_csv(
 )
 
 
-# =========================
-# 11. 保存最终数据
-# =========================
 thp_clean = thp_clean[
     [
         "id",
@@ -599,20 +545,6 @@ thp_clean.to_csv(
     index=False
 )
 
-
-# =========================
-# 12. 输出统计
-# =========================
-print("\nFinal cleaned data shape:")
-print(thp_clean.shape)
-
-print("\nUnique THP sequences:")
-print(thp_clean["sequence"].nunique())
-
-print("\nUnique target proteins:")
-print(thp_clean["target_protein"].nunique())
-
-print("\nMissing target:")
 print(thp_clean["target_protein"].isna().sum())
 
 print("\nLength distribution:")
