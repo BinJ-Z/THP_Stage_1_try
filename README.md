@@ -34,5 +34,7 @@ The THP database does not indicate whether the target proteins are from humans o
 
 Therefore, searching Swiss-Prot using only the target protein name cannot determine whether the retrieved amino acid sequence belongs to human or mouse.
 
-### 3. I  frozen all the parameters in protein language ESM2 model? Our data only includes 400 positive samples and 400 negative samples.
+### 3. frozen all the parameters in protein language ESM2
+
+I  frozen all the parameters in protein language ESM2 model? Our data only includes 400 positive samples and 400 negative samples.
 
