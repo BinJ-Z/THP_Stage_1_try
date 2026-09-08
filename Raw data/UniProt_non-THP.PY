@@ -5,9 +5,7 @@ import re
 
 random.seed(42)
 
-# =========================
-# 1. 读取正样本
-# =========================
+
 
 thp = pd.read_csv("/Users/bohe/Desktop/THP CODE2/clean_data/thp_clean.csv")
 
@@ -18,9 +16,7 @@ thp["label"] = 1
 thp_sequences = set(thp["sequence"])
 
 
-# =========================
-# 2. 下载 Swiss-Prot 蛋白
-# =========================
+# 下载 Swiss-Prot 蛋白
 
 url = (
     "https://rest.uniprot.org/uniprotkb/search"
@@ -48,9 +44,9 @@ while url and len(proteins) < 3000:
     url = match.group(1) if match else None
 
 
-# =========================
-# 3. 生成同长度负样本
-# =========================
+
+#  生成同长度负样本
+
 
 standard_aa = set("ACDEFGHIKLMNPQRSTVWY")
 negative = thp.copy()
@@ -87,16 +83,14 @@ for i, row in negative.iterrows():
 negative["label"] = 0
 
 
-# =========================
-# 4. 合并正负样本
-# =========================
+
+#  合并正负样本
+
 
 all_pairs = pd.concat([thp, negative], ignore_index=True)
 
 
-# =========================
-# 5. 保存
-# =========================
+
 
 all_pairs.to_csv(
     "/Users/bohe/Desktop/THP CODE2/clean_data/thp_pairs.csv",
